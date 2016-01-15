@@ -11,13 +11,12 @@ def nmf_euc(Y,K,iter):
 
     H = np.random.rand(Y.shape[0],K)
     U = np.random.rand(K,Y.shape[1])
+    U = U / U.max()
     eps = np.finfo(float).eps
 #    onemat = np.ones(Y.shape)
-    
+
     for i in range(0,iter):
         H = H * Y.dot(U.T) / (H.dot(U.dot(U.T)) + eps)
-        U = U * H.T.dot(Y) / (H.T.dot(H.dot(U)) + eps)  
+        U = U * H.T.dot(Y) / (H.T.dot(H.dot(U)) + eps)
+        U = U / U.max()
     return H,U
-    
-
-    
