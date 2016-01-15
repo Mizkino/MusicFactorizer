@@ -10,15 +10,15 @@ import scipy as sp
 import matplotlib.pyplot as plt
 
 import func_stft
+import music_factorize
+
 
 def printWaveInfo(wf):
     """WAVEファイルの情報を取得"""
-    print ("チャンネル数:", wf.getnchannels())
-    print ("サンプル幅:", wf.getsampwidth())
-    print ("サンプリング周波数:", wf.getframerate())
-    print ("フレーム数:", wf.getnframes())
-    print ("パラメータ:", wf.getparams())
-    print ("長さ（秒）:", float(wf.getnframes()) / wf.getframerate())
+    print ("Channels:", wf.getnchannels())
+    print ("Sampwidth:", wf.getsampwidth())
+    print ("Framerate:", wf.getframerate())
+    print ("Frames:", wf.getnframes())
 
 if __name__ == '__main__':
     # set params
@@ -36,9 +36,7 @@ if __name__ == '__main__':
     wf.close()
 
     spectrogram = func_stft.stft(data, stft_wsize, stft_step)
-    # spectrogram = func_stft.stft_hitono(data, np.hanning(stft_wsize), stft_step)
 
-    # プロット
     # plt.plot(data)
     # plt.show()
     #    pxx, freqs, bins, im = plt.specgram(data,NFFT=2048,Fs=wf.getframerate(),noverlap=0,window=np.hamming(2048))
@@ -46,13 +44,13 @@ if __name__ == '__main__':
     # plt.imshow(abs(spectrogram[:stft_wsize/2,:]), aspect = "auto", origin = "lower")
     # plt.show()
     #
-    # Y = np.abs(spectrogram)
-    # phase = np.angle(spectrogram)
+    Y = np.abs(spectrogram)
+    phase = np.angle(spectrogram)
 
-    reconst = func_stft.istft(spectrogram,stft_wsize,stft_step)
-    # reconst = func_stft.istft_hitono(spectrogram,np.hanning(stft_wsize),stft_step)
-    # print ("recon.shape=",reconst.shape,"      reconst.dtype=",reconst.dtype)
-    reconst = reconst.astype("int16")
+    H, U = music_factorize.nmf_euc(Y, 20, 100)
+
+    reconst = func_stft.istft(H.dot(U) * np.exp((0 + 1j) * phase), stft_wsize, stft_step)
+
     # plt.subplot(211)
     # plt.plot(data)
     # plt.subplot(212)
@@ -61,10 +59,10 @@ if __name__ == '__main__':
     # wavfile.write(output_name,fs,reconst)
     w = wave.Wave_write(output_name)
     w.setparams((
-        ps.nchannels,                        # channel
-        ps.sampwidth,                        # byte width
-        ps.framerate,                    # sampling rate
-        len(reconst),                 # number of frames
+        ps.nchannels,             # channel
+        ps.sampwidth,             # byte width
+        ps.framerate,             # sampling rate
+        len(reconst),             # number of frames
         ps.comptype, ps.compname  # no compression
     ))
     w.writeframes(reconst.tostring())
