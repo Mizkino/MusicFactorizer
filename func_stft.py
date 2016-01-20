@@ -19,7 +19,7 @@ def split_frames(x, w_size, step):
 
 
 def stft(x, w_size, step):
-    window = np.hamming(w_size)
+    window = np.hanning(w_size)
     frames, N = split_frames(x, w_size, step)
 
     spectrogram = np.zeros((w_size, N), dtype=np.complex)
@@ -33,7 +33,7 @@ def istft(spectrogram, w_size, step):
         print ("Mismatch w_size and spectrogram")
 
     eps = np.finfo(float).eps
-    window = np.hamming(w_size)
+    window = np.hanning(w_size)
     # spectrogram.shape = w_size , bins
     spectr_len = spectrogram.shape[1]
     reconst_len = w_size + (spectr_len - 1) * step
@@ -47,6 +47,8 @@ def istft(spectrogram, w_size, step):
         s = i * step
         e = i * step + w_size
         r = ifft(spectrogram[:, i]).real
+        # r = abs(ifft(spectrogram[:, i]))
+
         reconst_x[s:e] += r * window
         windowsum[s:e] += windowsq
 
