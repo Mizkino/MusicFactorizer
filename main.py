@@ -59,124 +59,174 @@ class BarPlot():
 
     def draw_wave(self, data, offs, leng):
         self.axes.clear()
+        self.axes.autoscale(tight="True")
         self.axes.axis('off')
-        print("datashape = ",data.shape)
+        # self.axes.set_xticks([])
+        # self.axes.set_yticks([])
+        print("datashape = ", data.shape)
         self.axes.plot(data[offs:leng + 1])
         self.canvas.draw()
 
-    def draw_spectrogram(self, spectrogram, fmax, fmin):
+    def draw_spectrogram(self, spectrogram, fmax, fmin, cscl):
         self.axes.clear()
         maxbin = (int)(fmax / 44100 * 2048)
         minbin = (int)(fmin / 44100 * 2048)
-
-        sp = self.axes.imshow(abs(spectrogram[minbin:maxbin, :]), aspect="auto", origin="lower")
-        self.fig.subplots_adjust(right=0.8)
-        cbar_ax = self.fig.add_axes([0.85, 0.15, 0.05, 0.7])
-        self.fig.colorbar(sp, cax=cbar_ax)
+        vmax = np.max(abs(spectrogram[minbin:maxbin, :])) * cscl / 100
+        sp = self.axes.imshow(abs(spectrogram[minbin:maxbin, :]), aspect="auto", origin="lower",vmax=vmax)
+        # self.fig.subplots_adjust(right=0.8)
+        # cbar_ax = self.fig.add_axes([0.85, 0.15, 0.05, 0.7])
+        # # cbar_ax.majorticks_off()
+        # self.fig.colorbar(sp, cax=cbar_ax,ticks=[])
         self.canvas.draw()
 
-    def draw_vert_h(self, H1, fmax, fmin):
+    def draw_vert_h(self, H, fmax, fmin):
+        for ax in self.fig.axes: #delete axes first
+            self.fig.delaxes(ax)
         self.axes.clear()
-        self.axes.axis('off')
         maxbin = (int)(fmax / 44100 * 2048)
         minbin = (int)(fmin / 44100 * 2048)
-        print("H1shape = ",H1.shape)
-        x = range(minbin,maxbin)
-        self.axes.barh(H1[minbin:maxbin],x)
+        x = range(minbin, maxbin)
+        for K in range(H.shape[1]):
+            self.axes = self.fig.add_subplot(1, H.shape[1], K+1)
+            self.axes.set_xticks([])
+            self.axes.set_yticks([])
+            self.axes.set_ylim(minbin,maxbin)
+            self.axes.barh(x, H[minbin:maxbin,K])
         self.canvas.draw()
+
+    def draw_hors_u(self, U):
+        for ax in self.fig.axes: #delete axes first
+            self.fig.delaxes(ax)
+        self.axes.clear()
+        for K in range(U.shape[0]):
+            self.axes = self.fig.add_subplot(U.shape[0],1, K+1)
+            self.axes.set_xticks([])
+            self.axes.set_yticks([])
+            self.axes.plot(U[K,:],)
+        self.canvas.draw()
+
 
 class MusicFactorWindow(QtGui.QWidget):
 
-    def __init__(self,K):
+    def __init__(self, K):
         # init
         super(MusicFactorWindow, self).__init__()
         # instant var
-        self.fmax = 22050
+        self.fmax = 5000
         self.fmin = 0
-        self.K = K
-        self.Hbar = []
-        self.Ubar = []
+        self.cscl = 100
+        # self.K = K
+        # self.Hbar = []
+        # self.Ubar = []
         self.H = []
         self.U = []
         self.phase = []
-        self.design_mfw(K)
-
-    def design_mfw(self,K):
-
-        self.main_frame = QtGui.QWidget()
+        self.K = K
+        # self.main_frame = QtGui.QWidget()
         self.spbar = BarPlot(self, width=6, height=6)
-        for ks in range(self.K):
-            Hbar = BarPlot(self, width=6, height=float(6/self.K))
-            Ubar = BarPlot(self, width=6, height=float(6/self.K))
-            self.Hbar.append(Hbar)
-            self.Ubar.append(Ubar)
+        self.Hbar = BarPlot(self, width=6, height=6)
+        self.Ubar = BarPlot(self, width=6, height=6)
+        # for ks in range(self.K):
+        #     Hbar_temp = BarPlot(self, width=1, height= 5 )
+        #     Ubar_temp = BarPlot(self, width=5, height= 1 )
+        #     self.Hbar.append(Hbar_temp)
+        #     self.Ubar.append(Ubar_temp)
 
         # set option slider and button etc
         self.maxs = QtGui.QSlider(QtCore.Qt.Horizontal, self)
-        self.maxs.setMinimum(1)
+        self.maxs.setMinimum(10)
         self.maxs.setMaximum(100)
         self.maxs.setValue(50)
         self.maxs.valueChanged.connect(self.get_fmax)
+        self.maxs.sliderReleased.connect(self.disp_hs)
         self.mins = QtGui.QSlider(QtCore.Qt.Horizontal, self)
         self.mins.setMinimum(0)
         self.mins.setMaximum(100)
         self.mins.setValue(0)
         self.mins.valueChanged.connect(self.get_fmin)
-
+        self.mins.sliderReleased.connect(self.disp_hs)
+        self.scls = QtGui.QSlider(QtCore.Qt.Horizontal, self)
+        self.scls.setMinimum(1)
+        self.scls.setMaximum(100)
+        self.scls.setValue(100)
+        self.scls.valueChanged.connect(self.get_cscl)
         # H and U Layout
-        hsbox = QtGui.QHBoxLayout()
-        usbox = QtGui.QVBoxLayout()
-        for ks in range(self.K):
-            hsbox.addWidget(self.Hbar[ks].canvas)
-            usbox.addWidget(self.Ubar[ks].canvas)
+
+        # hsbl = QtGui.QHBoxLayout()
+        # usbl = QtGui.QVBoxLayout()
+        # for ks in range(self.K):
+        #     hsbl.addWidget(self.Hbar[ks].canvas)
+        #     usbl.addWidget(self.Ubar[ks].canvas)
 
         # H,U and spectrogram Layout
         grid = QtGui.QGridLayout()
-        grid.addLayout(hsbox, 0, 1)
-        grid.addLayout(usbox, 1, 0)
-        grid.addWidget(self.spbar.canvas,1,1)
+        # grid.addLayout(hsbl, 1, 1)
+        # grid.addLayout(usbl, 2, 0)
+        grid.addWidget(self.Hbar.canvas, 2, 0)
+        grid.addWidget(self.Ubar.canvas, 1, 1)
+        grid.addWidget(self.spbar.canvas, 2, 1)
 
         # bars layout
+        # hbox = QtGui.QHBoxLayout()
+        # hbox.addWidget(self.mins)
+        # hbox.addWidget(self.maxs)
         hbox = QtGui.QHBoxLayout()
         hbox.addWidget(self.mins)
         hbox.addWidget(self.maxs)
+        hbox.addWidget(self.scls)
+        grid.addLayout(hbox,0,0,1,2)
+        # grid.addWidget(self.mins, 0, 0)
+        # grid.addWidget(self.maxs, 0, 1)
+        # grid.addWidget(self.scls, 0, 2)
 
         # set layout all
-        vbox = QtGui.QVBoxLayout()
-        vbox.addLayout(hbox)
-        vbox.addLayout(grid)  # add canvas to the layout
-        self.main_frame.setLayout(vbox)
+        # vbox = QtGui.QVBoxLayout()
+        # vbox.addLayout(hbox)
+        # vbox.addLayout(grid)
+        # add canvas to the layout
+        # self.main_frame.setLayout(vbox)
         # set widget
         # self.addWidget(self.main_frame)
-        self.setLayout(vbox)
+        # self.setLayout(vbox)
+        self.setLayout(grid)
+        self.setGeometry(500, 500, 1000, 1000)
 
-    def disp_musicfactor(self,H,U,phase):
+    def disp_musicfactor(self, H, U, phase):
         self.H = H
         self.U = U
         self.phase = phase
         self.K = H.shape[1]
-        self.design_mfw(self.K)
-        # self.spbar.draw_spectrogram(H.dot(U),self.fmax, self.fmin)
-        self.disp_hs(self.K)
-        self.disp_us(self.K)
+        # self.design_mfw(self.K)
+        print("drawSpectrogram")
+        self.spbar.draw_spectrogram(H.dot(U), self.fmax, self.fmin, self.cscl)
+        # self.disp_hs(self.K)
+        # self.disp_us(self.K)
+        print("drawH")
+        self.disp_hs()
+        print("drawU")
+        self.disp_us(H,U)
 
     def get_fmax(self, value):
-        self.fmax = 200 * value
-        self.spbar.draw_spectrogram(self.H.dot(self.U), self.fmax, self.fmin)
+        # self.fmax = 200 * value
+        self.fmax = 22050 * ((value/100)**2)
+        self.spbar.draw_spectrogram(self.H.dot(self.U), self.fmax, self.fmin, self.cscl)
+        # self.Hbar.draw_vert_h(self.H, self.fmax, self.fmin)
 
     def get_fmin(self, value):
         self.fmin = 5 * value
-        self.spbar.draw_spectrogram(self.H.dot(self.U), self.fmax, self.fmin)
+        self.spbar.draw_spectrogram(self.H.dot(self.U), self.fmax, self.fmin, self.cscl)
+        # self.Hbar.draw_vert_h(self.H, self.fmax, self.fmin)
 
-    def disp_hs(self,K):
-        for ks in range(K):
-            self.Hbar[ks].draw_vert_h(self.H[:,ks],self.fmax, self.fmin)
+    def get_cscl(self, value):
+        self.cscl = value
+        self.spbar.draw_spectrogram(self.H.dot(self.U), self.fmax, self.fmin, self.cscl)
 
-    def disp_us(self,K):
-        length = len(self.U[0,:])
-        print("length = ",length)
-        for ks in range(K):
-            self.Ubar[ks].draw_wave(self.U[ks,:],0,length)
+    def disp_hs(self):
+        self.Hbar.draw_vert_h(self.H, self.fmax, self.fmin)
+    # def disp_hs(self, K):
+
+    def disp_us(self, H, U):
+        self.Ubar.draw_hors_u(U)
 
 
 class SpectrogramWindow(QtGui.QWidget):
@@ -185,15 +235,16 @@ class SpectrogramWindow(QtGui.QWidget):
         # init
         super(SpectrogramWindow, self).__init__()
         # instant var
-        self.fmax = 22050
+        self.fmax = 5000
         self.fmin = 0
+        self.cscl = 100
         # self.main_frame = QtGui.QWidget()
         self.barplot = BarPlot(self, width=6, height=6)
         self.spectrogram = []
 
         # set option slider and button etc
         self.maxs = QtGui.QSlider(QtCore.Qt.Horizontal, self)
-        self.maxs.setMinimum(1)
+        self.maxs.setMinimum(10)
         self.maxs.setMaximum(100)
         self.maxs.setValue(50)
         self.maxs.valueChanged.connect(self.get_fmax)
@@ -202,10 +253,17 @@ class SpectrogramWindow(QtGui.QWidget):
         self.mins.setMaximum(100)
         self.mins.setValue(0)
         self.mins.valueChanged.connect(self.get_fmin)
+        self.scls = QtGui.QSlider(QtCore.Qt.Horizontal, self)
+        self.scls.setMinimum(1)
+        self.scls.setMaximum(100)
+        self.scls.setValue(100)
+        self.scls.valueChanged.connect(self.get_cscl)
 
         hbox = QtGui.QHBoxLayout()
         hbox.addWidget(self.mins)
         hbox.addWidget(self.maxs)
+        hbox.addWidget(self.scls)
+
         # set layout
         vbox = QtGui.QVBoxLayout()
         vbox.addLayout(hbox)
@@ -217,15 +275,20 @@ class SpectrogramWindow(QtGui.QWidget):
 
     def disp_spectrogram(self, spectrogram):
         self.spectrogram = spectrogram
-        self.barplot.draw_spectrogram(spectrogram, self.fmax, self.fmin)
+        self.barplot.draw_spectrogram(self.spectrogram, self.fmax, self.fmin,self.cscl)
 
     def get_fmax(self, value):
-        self.fmax = 200 * value
-        self.barplot.draw_spectrogram(self.spectrogram, self.fmax, self.fmin)
+        # self.fmax = 200 * value
+        self.fmax = 22050 * ((value/100)**2)
+        self.barplot.draw_spectrogram(self.spectrogram, self.fmax, self.fmin,self.cscl)
 
     def get_fmin(self, value):
         self.fmin = 5 * value
-        self.barplot.draw_spectrogram(self.spectrogram, self.fmax, self.fmin)
+        self.barplot.draw_spectrogram(self.spectrogram, self.fmax, self.fmin,self.cscl)
+
+    def get_cscl(self, value):
+        self.cscl = value
+        self.barplot.draw_spectrogram(self.spectrogram, self.fmax, self.fmin,self.cscl)
 
 
 class WaveformWindow(QtGui.QWidget):
@@ -233,14 +296,10 @@ class WaveformWindow(QtGui.QWidget):
     def __init__(self):
         # init
         super(WaveformWindow, self).__init__()
-        # self.main_frame = QtGui.QWidget()
-        self.barplot = BarPlot(self, width=8, height=1.5)
+        self.barplot = BarPlot(self, width=6, height=1.5)
         # set layout
-        vbox = QtGui.QVBoxLayout()
+        vbox = QtGui.QHBoxLayout()
         vbox.addWidget(self.barplot.canvas)  # add canvas to the layout
-        # self.main_frame.setLayout(vbox)
-        # set widget
-        # self.addWidget(self.main_frame)
         self.setLayout(vbox)
 
     def disp_wave(self, sd, offs, leng):
@@ -260,7 +319,7 @@ class ApplicationWindow(QtGui.QWidget):
         self.wsize = 2048
         self.step = 1024
         self.spectrogram = []
-        self.K = 10
+        self.K = 5
         self.envs = 5
         self.iter = 100
 
@@ -319,7 +378,7 @@ class ApplicationWindow(QtGui.QWidget):
 
         # spectrofactor row
         specfact_horizen = QtGui.QHBoxLayout()
-        self.sfacb = QtGui.QPushButton('Spectrogram', self)
+        self.sfacb = QtGui.QPushButton('MusicFactor', self)
         self.sfacb.clicked.connect(self.calc_NMF)
         self.K_l = QtGui.QLabel(self)
         self.K_l.setText('NMF_K:')
@@ -359,7 +418,8 @@ class ApplicationWindow(QtGui.QWidget):
         # instantiate Windows
         self.wfw = WaveformWindow()
         self.spw = SpectrogramWindow()
-        self.mfw = MusicFactorWindow(self.K)
+        self.open_file()
+
 
     def disp_refresh(self):
         self.sampling_p.setText(str(self.sd.ps.framerate))
@@ -379,6 +439,8 @@ class ApplicationWindow(QtGui.QWidget):
         self.length = self.sd.ps.nframes
         self.disp_refresh()
 
+        # self.mfw = MusicFactorWindow(self.K)
+
     def make_waveform(self):
         self.length = int(self.length_t.text())
         self.offset = int(self.offset_t.text())
@@ -386,49 +448,37 @@ class ApplicationWindow(QtGui.QWidget):
         self.wfw.show()
 
     def make_spectrogram(self):
-        self.length = int(self.length_t.text())
-        self.offset = int(self.offset_t.text())
-        self.wsize = int(self.stftw_t.text())
-        self.step = int(self.stfts_t.text())
-        self.spectrogram = stft(self.sd.data[self.offset:self.length + 1], self.wsize, self.step)
+        # print(self.length,'    ', int(self.length_t.text()))
+        # print(self.offset,'    ',int(self.offset_t.text()))
+        # print(self.wsize,'    ', int(self.stftw_t.text()))
+        # print(self.step,'    ', int(self.stfts_t.text()))
+        if (self.spectrogram == [] or self.length != int(self.length_t.text()) or self.offset != int(self.offset_t.text()) or self.wsize != int(self.stftw_t.text()) or self.step != int(self.stfts_t.text())):
+            self.length = int(self.length_t.text())
+            self.offset = int(self.offset_t.text())
+            self.wsize = int(self.stftw_t.text())
+            self.step = int(self.stfts_t.text())
+            self.spectrogram = stft(self.sd.data[self.offset:self.length + 1], self.wsize, self.step)
         self.spw.disp_spectrogram(self.spectrogram)
         self.spw.show()
 
     def calc_NMF(self):
-        # self.length = int(self.length_t.text())
-        # self.offset = int(self.offset_t.text())
-        # self.wsize = int(self.stftw_t.text())
-        # self.step = int(self.stfts_t.text())
-        self.spectrogram = stft(self.sd.data[self.offset:self.length + 1], self.wsize, self.step)
+        if (self.spectrogram == [] or self.length != int(self.length_t.text()) or self.offset != int(self.offset_t.text()) or self.wsize != int(self.stftw_t.text()) or self.step != int(self.stfts_t.text())):
+            self.length = int(self.length_t.text())
+            self.offset = int(self.offset_t.text())
+            self.wsize = int(self.stftw_t.text())
+            self.step = int(self.stfts_t.text())
+            self.spectrogram = stft(self.sd.data[self.offset:self.length + 1], self.wsize, self.step)
 
         self.K = int(self.K_t.text())
         self.envs = int(self.envs_t.text())
         self.iter = int(self.iter_t.text())
+        self.mfw = MusicFactorWindow(self.K)
+
         Y = np.abs(self.spectrogram)
         phase = np.angle(self.spectrogram)
         H, U = music_factorize.nmf_euc(Y, self.K, self.iter)
-        self.mfw.disp_musicfactor(H,U,phase)
+        self.mfw.disp_musicfactor(H, U, phase)
         self.mfw.show()
-#
-# class FileWidget(QtGui.QWidget):
-#
-#     def __init__(self):
-#         super(FileWidget, self).__init__()
-#         self.button = QtGui.QPushButton("click me!")
-#         self.button.clicked.connect(self.open_FileDialog)
-#         self.ledit = QtGui.QLineEdit("")
-#
-#         hbox = QtGui.QHBoxLayout()
-#         hbox.addWidget(self.button)
-#         hbox.addWidget(self.ledit)
-#         self.setLayout(hbox)
-#
-#         self.move(50, 50)
-#
-#     def open_FileDialog(self):
-#         filename = QtGui.QFileDialog.getOpenFileName(self, 'Open file')
-#         self.ledit.setText(filename)
-
 
 def printWaveInfo(wf):
     print ("Channels:", wf.getnchannels())
