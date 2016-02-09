@@ -29,6 +29,7 @@ def stft(x, w_size, step):
 
 
 def istft(spectrogram, w_size, step):
+    
     if spectrogram.shape[0] != w_size:
         print ("Mismatch w_size and spectrogram")
 
