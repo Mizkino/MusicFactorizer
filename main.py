@@ -645,6 +645,7 @@ class ApplicationWindow(QtGui.QWidget):
         Y = np.abs(self.spectrogram)
         phase = np.angle(self.spectrogram)
         H, U = music_factorize.nmf_euc(Y, self.K, self.iter)
+        H,U,G,O = music_factorize.m_fact_euc(Y, self.K, self.envs, self.iter, H, U)
         self.mfw.disp_musicfactor(H, U, phase)
         self.mfw.show()
         self.mfw.reconst_music()

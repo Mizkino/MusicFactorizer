@@ -11,7 +11,7 @@ import numpy as np
 def calc_U(U,G,O,K,t2,tau,envs):
     for ks in range(K):
         for ts in range(t2):
-            continue if ts - tau < 0
+            if ts - tau < 0: continue
             U[ks,ts] = np.sum(np.sum(G[:,0:tau+1].T*O[ks,slice(ts,ts-tau-1,-1),:]))
     return U
 
@@ -19,7 +19,7 @@ def calc_G(H,X,G,O,K,t2,tau,envs,pg,rg):
     Gt = G
     for j in range(envs):
         for taus in range(tau):
-            break if t2 - taus < 0
+            if t2 - taus < 0: break
             Gt[j,ts] = G[j,ts]*np.sum(np.sum(O[:,j,slice(t2-taus,t2)]))* sum(sum(H.T.dot(Y)))\
              / ( np.sum(np.sum(O[:,j,slice(t2-taus,t2+1)]))*sum(sum(H.T.dot(X))) + pg*rg *np.power(abs(G[j,ts]),pg))
     return Gt
@@ -29,7 +29,7 @@ def calc_O(H,X,G,O,K,t2,tau,envs,pg,rg):
         for i in range(K):
             for j in range(envs):
                 for taus in range(tau):
-                    break if t - taus < 0
+                    if t - taus < 0: break
                     # O[i,j,taus] = Ot[i,j,taus] * sum(G[j,max(0:
                     np.sum(G[j,slice(t-taus,t+1)]) * sum(sum(H.T.dot(Y)))\
                     / ( np.sum(G[j,slice(t-taus,t+1)])*sum(sum(H.T.dot(X))) + pg*rg *np.power(abs(O[i,j,t+taus]),pg))
@@ -72,9 +72,8 @@ def m_fact_euc(Y,K,envs,iter,H,U):
     t2 = Y.shape[1]
 
     for js in range(envs):
-        ranj = random.rand()
-        taus = range(G.shape[1])
-        G[js,:] = np.exp((-1)*ranj*taus)
+        ranjtau = [-1*np.random.rand() for i in range(G.shape[1])]
+        G[js,:] = np.exp(ranjtau)
         G[js,:] = G[js,:]/np.sum(G[js,:])
         O[:,:,js] = U
 
