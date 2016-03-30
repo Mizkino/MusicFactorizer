@@ -232,9 +232,13 @@ class MusicFactorWindow(QtGui.QWidget):
 
     def lsee_mstftm(self,X):
         V = X
-        for i in range(5)
+        for i in range(5):
             v_aud = istft(V * np.exp((0 + 1j) * self.phase), stft_wsize, stft_step)
             V = stft(v_aud, stft_wsize, stft_step)
+            while(V.shape[1] < X.shape[1]):
+                V = np.c_[V,[0 for i in range(V.shape[0])]]
+            while(X.shape[1] < V.shape[1]):
+                X = np.c_[V,[0 for i in range(X.shape[0])]]
             V = X * V / np.abs(V)
         return V
 
@@ -244,10 +248,10 @@ class MusicFactorWindow(QtGui.QWidget):
         print("wsize, step =", stft_wsize, ", ", stft_step)
         print(self.clist)
         global Ymean
-        # scale = Ymean / self.H.dot(self.U).mean
+        print("Ym:",Ymean,"  , Xmean:",np.mean(self.H.dot(self.U)))
+        # scale = Ymean / np.mean(self.H.dot(self.U))
         scale = 1
-        V = self.lsee_mstftm(self.H.dot(self.U))
-        Vphase = np.angle(V)
+        Vphase = self.phase
         Ht = np.zeros(self.H.shape)
         Ut = np.zeros(self.U.shape)
         for ks in range(self.K):
@@ -269,6 +273,8 @@ class MusicFactorWindow(QtGui.QWidget):
         t.start()
 
     def playing_m(self):
+        mdata = self.reconst.tostring()
+        print("len type mdata = ", len(mdata), ", ", type(mdata))
 
         # prepare stream
         p = pyaudio.PyAudio()
@@ -279,8 +285,7 @@ class MusicFactorWindow(QtGui.QWidget):
         print ("Channels:", SD.ps.nchannels)
         print ("Sampwidth:", SD.ps.sampwidth)
         print ("Frames:", SD.ps.nframes)
-        mdata = self.reconst.tostring()
-        print("len type mdata = ", len(mdata), ", ", type(mdata))
+
         for t in range(0, len(mdata), 2048):
             if(self.willstop):
                 break
@@ -305,6 +310,9 @@ class MusicFactorWindow(QtGui.QWidget):
         self.disp_hs()
         print("drawU")
         self.disp_us(H, U)
+        V = self.lsee_mstftm(self.H.dot(self.U))
+        self.phase = np.angle(V)
+
 
     def get_fmax(self, value):
         # self.fmax = 200 * value
@@ -612,7 +620,7 @@ class ApplicationWindow(QtGui.QWidget):
             # global stft_step = self.step
             self.spectrogram = stft(SD.data[self.offset:self.length + 1], self.wsize, self.step)
             global Ymean
-            Ymean = np.abs(self.spectrogram).mean
+            Ymean = np.mean(np.abs(self.spectrogram))
         self.spw.disp_spectrogram(self.spectrogram)
         self.spw.show()
 
@@ -627,7 +635,7 @@ class ApplicationWindow(QtGui.QWidget):
             # global stft_step = self.step
             self.spectrogram = stft(SD.data[self.offset:self.length + 1], self.wsize, self.step)
             global Ymean
-            Ymean = np.abs(self.spectrogram).mean
+            Ymean = np.mean(np.abs(self.spectrogram))
 
         self.K = int(self.K_t.text())
         self.envs = int(self.envs_t.text())
