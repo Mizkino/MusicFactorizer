@@ -12,7 +12,7 @@ def calc_U(U,G,O,K,t2,tau,envs):
     for ks in range(K):
         for ts in range(t2):
             if ts - tau < 0: continue
-            U[ks,ts] = np.sum(np.sum(G[:,0:tau+1].T*O[ks,slice(ts,ts-tau-1,-1),:]))
+            U[ks,ts] = np.sum(np.sum(G[:,0:tau+1].T *O[ks,slice(ts,ts-tau-1,-1),:]))
     return U
 
 def calc_G(H,X,G,O,K,t2,tau,envs,pg,rg):
