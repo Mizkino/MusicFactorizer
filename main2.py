@@ -145,6 +145,8 @@ class MusicFactorWindow(QtGui.QWidget):
         self.cscl = 100
         self.H = []
         self.U = []
+        self.F = []
+        self.fai = []
         self.phase = []
         self.K = K
         self.willstop = True
@@ -250,15 +252,25 @@ class MusicFactorWindow(QtGui.QWidget):
         print(self.clist)
         global Ymean
         print("Ym:",Ymean,"  , Xmean:",np.mean(self.H.dot(self.U)))
-        scale = 1
-        Vphase = self.phase
-        Ht = np.zeros(self.H.shape)
-        Ut = np.zeros(self.U.shape)
-        for ks in range(self.K):
-            if self.clist[ks]:
-                Ht[:, ks] = self.H[:, ks]
-                Ut[ks, :] = self.U[ks, :]
-        self.reconst = istft(scale * Ht.dot(Ut) * np.exp((0 + 1j) * Vphase), stft_wsize, stft_step)
+        if len(self.fai) > 0:
+            F = np.zeros((self.H.shape[0],self.U.shape[1]))
+            for ks in range(self.K):
+                if not self.clist[ks]: continue;
+                Hk = np.array([self.H[:,ks] for i in range(self.U.shape[1])]).T
+                Uk = np.array([self.U[ks,:] for i in range(self.H.shape[0])])
+                F += Hk*Uk*self.fai[ks,:,:]
+            # self.reconst = istft(F * np.exp(0 + 1j), stft_wsize, stft_step)
+            self.reconst = istft(F * np.exp(0 + 1j) * self.phase, stft_wsize, stft_step)
+        else:
+            scale = 1
+            Vphase = self.phase
+            Ht = np.zeros(self.H.shape)
+            Ut = np.zeros(self.U.shape)
+            for ks in range(self.K):
+                if self.clist[ks]:
+                    Ht[:, ks] = self.H[:, ks]
+                    Ut[ks, :] = self.U[ks, :]
+            self.reconst = istft(scale * Ht.dot(Ut) * np.exp((0 + 1j) * Vphase), stft_wsize, stft_step)
 
 
     def push_ps_button(self):
@@ -296,10 +308,12 @@ class MusicFactorWindow(QtGui.QWidget):
         stream.close()
         p.terminate()
 
-    def disp_musicfactor(self, H, U, phase):
+    def disp_musicfactor(self, H, U, phase, fai, F):
         self.H = H
         self.U = U
         self.phase = phase
+        self.F = F
+        self.fai = fai
         self.K = H.shape[1]
         # self.design_mfw(self.K)
         print("drawSpectrogram")
@@ -310,8 +324,16 @@ class MusicFactorWindow(QtGui.QWidget):
         self.disp_hs()
         print("drawU")
         self.disp_us(H, U)
-        V = self.lsee_mstftm(self.H.dot(self.U))
-        self.phase = np.angle(V)
+        if len(fai) > 0:
+            F = np.zeros((self.H.shape[0],self.U.shape[1]))
+            for ks in range(U.shape[0]):
+                Hk = np.array([self.H[:,ks] for i in range(self.U.shape[1])]).T
+                Uk = np.array([self.U[ks,:] for i in range(self.H.shape[0])])
+                F += Hk*Uk*self.fai[ks,:,:]
+            self.phrase = np.angle(self.lsee_mstftm(self.H.dot(self.U)))
+        else:
+            V = self.lsee_mstftm(self.H.dot(self.U))
+            self.phase = np.angle(V)
 
 
     def get_fmax(self, value):
@@ -443,7 +465,7 @@ class ApplicationWindow(QtGui.QWidget):
         self.spectrogram = []
         self.K = 5
         self.envs = 5
-        self.iter = 100
+        self.iter = 50
         self.willstop = True
 
         # open_file, play and params row
@@ -644,9 +666,10 @@ class ApplicationWindow(QtGui.QWidget):
 
         Y = np.abs(self.spectrogram)
         phase = np.angle(self.spectrogram)
-        H, U = music_factorize.nmf_euc(Y, self.K, self.iter)
+        # H, U = music_factorize.nmf_euc(Y, self.K, self.iter)
+        H, U, fai, F = music_factorize.comp_nmf(Y, self.K, self.iter)
         # H,U,G,O = music_factorize.m_fact_euc(Y, self.K, self.envs, self.iter, H, U)
-        self.mfw.disp_musicfactor(H, U, phase)
+        self.mfw.disp_musicfactor(H, U, phase,fai,F)
         self.mfw.show()
         self.mfw.reconst_music()
 
