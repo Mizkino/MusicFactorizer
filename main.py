@@ -40,14 +40,14 @@ stft_step = 1024
 fs = 0
 K = 10
 max_iter = 100
-SD = []
+SD = [] # SoundData
 Ymean = 0
 
 
 class SoundData():
 
     def __init__(self):
-        ps = []
+        params = []
         data = []
 
 # class AudioPlayer():
@@ -278,13 +278,13 @@ class MusicFactorWindow(QtGui.QWidget):
 
         # prepare stream
         p = pyaudio.PyAudio()
-        stream = p.open(format=p.get_format_from_width(SD.ps.sampwidth),
-                        channels=SD.ps.nchannels,
-                        rate=SD.ps.framerate,
+        stream = p.open(format=p.get_format_from_width(SD.params.sampwidth),
+                        channels=SD.params.nchannels,
+                        rate=SD.params.framerate,
                         output=True)
-        print ("Channels:", SD.ps.nchannels)
-        print ("Sampwidth:", SD.ps.sampwidth)
-        print ("Frames:", SD.ps.nframes)
+        print ("Channels:", SD.params.nchannels)
+        print ("Sampwidth:", SD.params.sampwidth)
+        print ("Frames:", SD.params.nframes)
 
         for t in range(0, len(mdata), 2048):
             if(self.willstop):
@@ -549,8 +549,8 @@ class ApplicationWindow(QtGui.QWidget):
         self.open_file()
 
     def disp_refresh(self):
-        self.sampling_p.setText(str(SD.ps.framerate))
-        self.frames_p.setText(str(SD.ps.nframes))
+        self.sampling_p.setText(str(SD.params.framerate))
+        self.frames_p.setText(str(SD.params.nframes))
         self.offset_t.setText(str(self.offset))
         self.length_t.setText(str(self.length))
 
@@ -559,11 +559,11 @@ class ApplicationWindow(QtGui.QWidget):
         # input_fname = QtGui.QFileDialog.getOpenFileName(self, 'Open file')
         wf = wave.open(input_fname, "rb")
         printWaveInfo(wf)
-        SD.ps = wf.getparams()
+        SD.params = wf.getparams()
         buffer = wf.readframes(wf.getnframes())
         SD.data = np.frombuffer(buffer, dtype="int16")
         wf.close()
-        self.length = SD.ps.nframes
+        self.length = SD.params.nframes
         self.disp_refresh()
 
     def push_ps_button(self):
@@ -580,9 +580,9 @@ class ApplicationWindow(QtGui.QWidget):
 
         # prepare stream
         p = pyaudio.PyAudio()
-        stream = p.open(format=p.get_format_from_width(SD.ps.sampwidth),
-                        channels=SD.ps.nchannels,
-                        rate=SD.ps.framerate,
+        stream = p.open(format=p.get_format_from_width(SD.params.sampwidth),
+                        channels=SD.params.nchannels,
+                        rate=SD.params.framerate,
                         output=True)
         mdata = SD.data.tostring()
         for t in range(self.offset * 2, self.length * 2, 2048):
@@ -597,12 +597,12 @@ class ApplicationWindow(QtGui.QWidget):
     def make_waveform(self):
         if(not self.length_t.text()):
             self.length_t.setText("0")
-        elif(int(self.length_t.text()) > SD.ps.nframes):
-            self.length_t.setText(str(SD.ps.nframes))
+        elif(int(self.length_t.text()) > SD.params.nframes):
+            self.length_t.setText(str(SD.params.nframes))
         if(not self.offset_t.text()):
             self.offset_t.setText("0")
-        elif(int(self.offset_t.text()) > SD.ps.nframes):
-            self.offset_t.setText(str(SD.ps.nframes))
+        elif(int(self.offset_t.text()) > SD.params.nframes):
+            self.offset_t.setText(str(SD.params.nframes))
 
         self.length = int(self.length_t.text())
         self.offset = int(self.offset_t.text())
