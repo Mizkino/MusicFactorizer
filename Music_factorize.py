@@ -173,3 +173,45 @@ def m_fact_euc(Y,K,envs,iter,H,U):
             U[ks,:] = U[ks,:] * np.sum(H[:,ks])
 
     return H,U,G,O
+
+def vector_to_Mat(V1,V2):
+    M = np.zeros((V1.shape[0],V2.shape[0]))
+    for i in range(V1.shape[0]):
+        for j in range(V2.shape[0]):
+            M[i,j] = V1[i]*V2[j]
+    return M
+
+def multi_ch_NMF(Y,T,V,H,Z):
+    H = np.random.rand(Y.shape[0],K)
+    U = np.random.rand(K,Y.shape[1])*1000
+
+
+def updateT(A,E,T,V,H,Z):
+    T2 = T.copy()
+    for i in range(T.shape(0)):
+        for k in range(T.shape(1)):
+            EH = vector_to_Mat(E[i,:],H[i,:]) # j,o
+            T2[i,k] = T[i,k] * (1 + np.sum(V[k,:] * np.sum(Z[k,:].repeat(EH.shape[1]).reshape(Z.shape[1],EH.shape[1]).T * EH ,1))/np.sum(V[k,:]* A[i,:]))
+    return T2
+
+def updateV(A,E,T,V,H,Z):
+    V2 = V.copy()
+    for k in range(V.shape(0)):
+        for j in range(V.shape(1)):
+            EH = vector_to_Mat(E[i,:],H[i,:]) # j,o
+            V2[i,k] = V[i,k] * (1 + np.sum(T[:,K] * np.sum(Z[k,:].repeat(H.shape[0]).reshape(Z.shape[1],H.shape[0]).T * E[:,j].repeat(H.shape[1]).reshape(E.shape[0],H.shape[1]) * H ,1))/np.sum(T[:,k]* A[:,j]))
+    return V2
+
+def updateZ(A,E,T,V,H,Z):
+    Z2 = Z.copy()
+    for k in range(Z.shape(0)):
+        for o in range(Z.shape(1)):
+            Z2[k,o] = Z[k,o] * np.sum(vector_to_Mat(T[:,k],V[k,:]) * (A + E * H[:,o].repeat(E.shape[1]).reshape(H.shape[0],E.shape[1])))
+    return Z2
+
+def updateH(A,E,T,V,H,Z):
+    H2 = H.copy()
+    for k in range(Z.shape(0)):
+        for o in range(Z.shape(1)):
+            H2[k,o] = H[k,o] * np.sum(vector_to_Mat(T[:,k],V[k,:]) * (A + E * H[:,o].repeat(E.shape[1]).reshape(H.shape[0],E.shape[1])))
+    return H2
